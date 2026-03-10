@@ -1,0 +1,2597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KeyVault — Password Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06070f;
+  --surface:#0c0d1a;
+  --panel:#101120;
+  --card:#141527;
+  --card-hover:#181930;
+  --border:rgba(255,255,255,0.06);
+  --border-2:rgba(255,255,255,0.1);
+  --border-3:rgba(255,255,255,0.15);
+  --accent:#5b6af5;
+  --accent-2:#818cf8;
+  --accent-light:rgba(91,106,245,0.15);
+  --accent-glow:rgba(91,106,245,0.25);
+  --success:#22c55e;
+  --success-bg:rgba(34,197,94,0.1);
+  --warning:#f59e0b;
+  --warning-bg:rgba(245,158,11,0.1);
+  --danger:#ef4444;
+  --danger-bg:rgba(239,68,68,0.1);
+  --text:#f0f2ff;
+  --text-2:#8892b5;
+  --text-3:#3d4466;
+  --sidebar-w:240px;
+  --header-h:60px;
+  --radius:12px;
+  --radius-sm:8px;
+  --radius-xs:5px;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{
+  font-family:'Geist',system-ui,sans-serif;
+  font-size:14px;
+  color:var(--text);
+  line-height:1.5;
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:3px}
+
+/* ═══════════════════════════════════════════════════════
+   AUTH SCREEN
+═══════════════════════════════════════════════════════ */
+#auth-screen{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 60% 20%, rgba(91,106,245,0.08) 0%, transparent 60%),
+             radial-gradient(ellipse at 10% 80%, rgba(91,106,245,0.05) 0%, transparent 50%),
+             var(--bg);
+  z-index:1000;
+}
+#auth-screen.hidden{display:none}
+
+.auth-bg-grid{
+  position:absolute;inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size:48px 48px;
+  pointer-events:none;
+}
+
+.auth-layout{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:900px;
+  height:580px;
+  background:var(--surface);
+  border:1px solid var(--border-2);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+  position:relative;
+  z-index:1;
+}
+
+/* Left hero panel */
+.auth-hero{
+  background:linear-gradient(145deg, #0d0e20 0%, #0a0b18 100%);
+  padding:48px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  border-right:1px solid var(--border);
+  position:relative;
+  overflow:hidden;
+}
+
+.auth-hero::before{
+  content:'';
+  position:absolute;
+  top:-60px;right:-60px;
+  width:240px;height:240px;
+  background:radial-gradient(circle, rgba(91,106,245,0.15), transparent 70%);
+  pointer-events:none;
+}
+
+.auth-hero-logo{
+  display:flex;align-items:center;gap:10px;
+}
+.hero-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg, var(--accent), #4a59e0);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 0 24px rgba(91,106,245,0.4);
+}
+.hero-name{
+  font-family:'Instrument Serif',serif;
+  font-size:20px;
+  color:var(--text);
+  letter-spacing:-0.01em;
+}
+
+.auth-hero-content{flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px}
+.auth-hero h1{
+  font-family:'Instrument Serif',serif;
+  font-size:34px;
+  line-height:1.15;
+  color:var(--text);
+  letter-spacing:-0.02em;
+}
+.auth-hero h1 em{
+  font-style:italic;
+  color:var(--accent-2);
+}
+.auth-hero p{
+  font-size:14px;
+  color:var(--text-2);
+  line-height:1.65;
+  max-width:280px;
+}
+
+.auth-features{display:flex;flex-direction:column;gap:10px}
+.auth-feature{
+  display:flex;align-items:center;gap:10px;
+  font-size:13px;color:var(--text-2);
+}
+.auth-feature-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+  background:var(--accent);
+  flex-shrink:0;
+}
+
+/* Right form panel */
+.auth-form-panel{
+  padding:48px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.auth-tabs{
+  display:flex;gap:0;
+  background:var(--panel);
+  border-radius:var(--radius-sm);
+  padding:4px;
+  margin-bottom:28px;
+}
+.auth-tab{
+  flex:1;padding:8px 16px;
+  border:none;background:none;
+  color:var(--text-2);font-size:13px;font-weight:500;
+  border-radius:6px;cursor:pointer;
+  transition:all 0.2s;font-family:inherit;
+}
+.auth-tab.active{background:var(--accent);color:white}
+
+.auth-form-title{
+  font-family:'Instrument Serif',serif;
+  font-size:24px;color:var(--text);
+  margin-bottom:6px;letter-spacing:-0.01em;
+}
+.auth-form-sub{font-size:13px;color:var(--text-2);margin-bottom:24px}
+
+.field-stack{display:flex;flex-direction:column;gap:14px;margin-bottom:20px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em}
+.field-wrap{position:relative}
+.field input{
+  width:100%;
+  background:var(--panel);
+  border:1.5px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:11px 14px;
+  color:var(--text);font-size:14px;font-family:inherit;
+  outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.field input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.field input.pr{padding-right:44px}
+.eye-btn{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-3);cursor:pointer;
+  font-size:16px;padding:2px;transition:color .15s;
+}
+.eye-btn:hover{color:var(--text-2)}
+
+.pw-strength-bar{height:3px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden}
+.pw-strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s;width:0}
+
+.check-row{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text-2);user-select:none;margin-bottom:16px}
+.check-row input{display:none}
+.cbox{width:16px;height:16px;border:1.5px solid var(--border-2);border-radius:4px;background:var(--panel);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s}
+input:checked+.cbox{background:var(--accent);border-color:var(--accent)}
+input:checked+.cbox::after{content:'✓';font-size:10px;color:white;font-weight:700}
+
+.err{background:var(--danger-bg);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-xs);padding:9px 12px;font-size:12px;color:var(--danger);display:none;margin-bottom:12px}
+.err.show{display:block}
+
+/* Master password setup overlay */
+#master-overlay{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(8px);
+  display:flex;align-items:center;justify-content:center;
+  z-index:500;
+}
+#master-overlay.hidden{display:none}
+.master-card{
+  background:var(--surface);
+  border:1px solid var(--border-2);
+  border-radius:20px;
+  padding:40px;
+  width:440px;
+  box-shadow:0 40px 80px rgba(0,0,0,.5);
+}
+.master-icon{
+  width:52px;height:52px;
+  background:linear-gradient(135deg,var(--accent),#4a59e0);
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:24px;
+  margin-bottom:20px;
+  box-shadow:0 0 30px var(--accent-glow);
+}
+.master-title{font-family:'Instrument Serif',serif;font-size:26px;color:var(--text);margin-bottom:6px;letter-spacing:-0.01em}
+.master-sub{font-size:13px;color:var(--text-2);margin-bottom:24px;line-height:1.6}
+
+/* ═══════════════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════════════ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:10px 18px;
+  border:none;border-radius:var(--radius-sm);
+  font-size:13px;font-weight:600;font-family:inherit;
+  cursor:pointer;transition:all .2s;
+  white-space:nowrap;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#6272f6,#4a59e0);
+  color:white;
+  box-shadow:0 4px 16px rgba(91,106,245,.3);
+}
+.btn-primary:hover{box-shadow:0 6px 22px rgba(91,106,245,.4);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-ghost{background:var(--card);border:1px solid var(--border);color:var(--text-2)}
+.btn-ghost:hover{background:var(--card-hover);color:var(--text);border-color:var(--border-2)}
+.btn-danger{background:var(--danger-bg);border:1px solid rgba(239,68,68,.2);color:var(--danger)}
+.btn-danger:hover{background:rgba(239,68,68,.15)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-xs{padding:5px 10px;font-size:11px}
+.btn-full{width:100%}
+.btn-icon{
+  width:34px;height:34px;padding:0;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text-2);border-radius:var(--radius-sm);font-size:15px;
+}
+.btn-icon:hover{background:var(--card-hover);color:var(--text)}
+
+/* ═══════════════════════════════════════════════════════
+   APP LAYOUT
+═══════════════════════════════════════════════════════ */
+#app{
+  display:none;
+  height:100vh;
+  overflow:hidden;
+}
+#app.visible{display:flex}
+
+/* Sidebar */
+.sidebar{
+  width:var(--sidebar-w);
+  height:100vh;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  flex-shrink:0;
+  position:relative;
+  z-index:10;
+}
+
+.sidebar-logo{
+  display:flex;align-items:center;gap:10px;
+  padding:20px 18px 16px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.sidebar-logo-icon{
+  width:30px;height:30px;
+  background:linear-gradient(135deg,var(--accent),#4a59e0);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  box-shadow:0 0 14px rgba(91,106,245,.35);
+  flex-shrink:0;
+}
+.sidebar-logo-name{
+  font-family:'Instrument Serif',serif;
+  font-size:17px;color:var(--text);
+  letter-spacing:-0.01em;
+}
+
+.sidebar-search{
+  padding:12px 14px;
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.sidebar-search-inner{
+  display:flex;align-items:center;gap:8px;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  padding:7px 10px;
+  cursor:pointer;
+  transition:border-color .2s;
+}
+.sidebar-search-inner:hover{border-color:var(--border-2)}
+.sidebar-search-inner input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:13px;font-family:inherit;
+  cursor:pointer;
+}
+.sidebar-search-inner input::placeholder{color:var(--text-3)}
+.search-icon{color:var(--text-3);font-size:14px;flex-shrink:0}
+.search-kbd{
+  font-size:10px;color:var(--text-3);
+  background:var(--card);border:1px solid var(--border);
+  border-radius:4px;padding:1px 5px;
+  flex-shrink:0;
+}
+
+.sidebar-nav{
+  flex:1;overflow-y:auto;
+  padding:10px 10px;
+  display:flex;flex-direction:column;gap:2px;
+}
+
+.nav-section-label{
+  font-size:10px;font-weight:700;
+  color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.1em;
+  padding:10px 8px 5px;
+}
+
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  transition:all .15s;
+  color:var(--text-2);
+  font-size:13px;font-weight:500;
+  position:relative;
+  border:1px solid transparent;
+}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{
+  background:var(--accent-light);
+  color:var(--accent-2);
+  border-color:rgba(91,106,245,.2);
+}
+.nav-icon{
+  width:28px;height:28px;
+  border-radius:var(--radius-xs);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;
+  flex-shrink:0;
+  background:var(--card);
+  transition:background .15s;
+}
+.nav-item.active .nav-icon{background:rgba(91,106,245,.2)}
+.nav-item:hover .nav-icon{background:rgba(255,255,255,.06)}
+.nav-label{flex:1}
+.nav-badge{
+  font-size:10px;font-weight:700;
+  background:var(--accent);color:white;
+  border-radius:10px;padding:1px 6px;
+  min-width:18px;text-align:center;
+}
+.nav-badge.warn{background:var(--warning)}
+.nav-badge.danger{background:var(--danger)}
+
+.sidebar-footer{
+  padding:12px;
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+}
+.sidebar-user{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;
+  border-radius:var(--radius-sm);
+  cursor:pointer;
+  transition:background .15s;
+}
+.sidebar-user:hover{background:var(--panel)}
+.user-avatar{
+  width:30px;height:30px;
+  border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),#7c3aed);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:white;
+  flex-shrink:0;
+}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-plan{font-size:11px;color:var(--text-3)}
+.user-caret{color:var(--text-3);font-size:12px}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════ */
+.main{
+  flex:1;display:flex;flex-direction:column;
+  overflow:hidden;
+  background:var(--bg);
+}
+
+.topbar{
+  height:var(--header-h);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 28px;
+  gap:16px;
+  flex-shrink:0;
+  background:var(--bg);
+  position:relative;
+  z-index:5;
+}
+.topbar-title{
+  font-family:'Instrument Serif',serif;
+  font-size:20px;color:var(--text);
+  letter-spacing:-0.01em;
+  flex:1;
+}
+.topbar-actions{display:flex;align-items:center;gap:8px}
+.notif-btn{
+  position:relative;
+  width:34px;height:34px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:16px;color:var(--text-2);
+  transition:all .15s;
+}
+.notif-btn:hover{background:var(--card-hover);color:var(--text)}
+.notif-dot{
+  position:absolute;top:6px;right:6px;
+  width:7px;height:7px;
+  background:var(--danger);border-radius:50%;
+  border:1.5px solid var(--bg);
+}
+
+.page-content{
+  flex:1;overflow-y:auto;
+  padding:28px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PANELS (hidden/visible system)
+═══════════════════════════════════════════════════════ */
+.panel{display:none}
+.panel.active{display:block}
+
+/* ═══════════════════════════════════════════════════════
+   COMMON COMPONENTS
+═══════════════════════════════════════════════════════ */
+.page-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:24px;
+}
+.page-title{
+  font-family:'Instrument Serif',serif;
+  font-size:26px;color:var(--text);
+  letter-spacing:-0.02em;
+}
+.page-sub{font-size:13px;color:var(--text-2);margin-top:2px}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+
+.list-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+  transition:background .15s;
+}
+.list-item:last-child{border-bottom:none}
+.list-item:hover{background:var(--card-hover)}
+
+.item-favicon{
+  width:36px;height:36px;
+  border-radius:9px;
+  background:var(--accent-light);
+  border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;overflow:hidden;
+}
+.item-favicon img{width:20px;height:20px;object-fit:contain}
+.item-info{flex:1;min-width:0}
+.item-name{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item-sub{font-size:12px;color:var(--text-2);margin-top:1px}
+.item-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s}
+.list-item:hover .item-actions{opacity:1}
+
+.section-label{
+  font-size:11px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.1em;
+  padding:0 0 10px;
+}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+/* Stat cards */
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.stat-label{font-size:12px;color:var(--text-2);font-weight:500}
+.stat-value{
+  font-family:'Instrument Serif',serif;
+  font-size:32px;color:var(--text);
+  letter-spacing:-0.02em;line-height:1;
+}
+.stat-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;
+  padding:3px 8px;border-radius:20px;
+  width:fit-content;
+}
+.badge-success{background:var(--success-bg);color:var(--success)}
+.badge-warning{background:var(--warning-bg);color:var(--warning)}
+.badge-danger{background:var(--danger-bg);color:var(--danger)}
+.badge-accent{background:var(--accent-light);color:var(--accent-2)}
+
+/* ═══════════════════════════════════════════════════════
+   NOTIFICATIONS PANEL
+═══════════════════════════════════════════════════════ */
+#notif-panel{
+  position:fixed;top:68px;right:20px;
+  width:360px;
+  background:var(--surface);
+  border:1px solid var(--border-2);
+  border-radius:var(--radius);
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  z-index:200;
+  display:none;
+  overflow:hidden;
+  max-height:480px;
+}
+#notif-panel.show{display:block;animation:fadeDown .2s ease}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+.notif-header{
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.notif-header-title{font-size:13px;font-weight:700;color:var(--text)}
+.notif-list{overflow-y:auto;max-height:380px}
+.notif-item{
+  display:flex;gap:12px;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .15s;
+}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--panel)}
+.notif-item.unread{background:rgba(91,106,245,.04)}
+.notif-dot-unread{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);flex-shrink:0;margin-top:5px;
+}
+.notif-dot-read{width:7px;flex-shrink:0}
+.notif-icon{
+  width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;flex-shrink:0;
+}
+.notif-text{flex:1}
+.notif-title{font-size:13px;font-weight:600;color:var(--text)}
+.notif-body{font-size:12px;color:var(--text-2);margin-top:2px;line-height:1.4}
+.notif-time{font-size:11px;color:var(--text-3);margin-top:4px}
+
+/* ═══════════════════════════════════════════════════════
+   LOGINS PANEL
+═══════════════════════════════════════════════════════ */
+.login-toolbar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:20px;
+}
+.search-field{
+  flex:1;
+  display:flex;align-items:center;gap:8px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:9px 12px;
+}
+.search-field input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-size:13px;font-family:inherit;
+}
+.search-field input::placeholder{color:var(--text-3)}
+
+.login-groups{display:flex;flex-direction:column;gap:24px}
+.group-label{
+  font-size:11px;font-weight:700;color:var(--text-3);
+  text-transform:uppercase;letter-spacing:.1em;
+  margin-bottom:8px;
+  padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+
+.login-history-tag{
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:10px;
+  background:rgba(91,106,245,.12);color:var(--accent-2);
+  flex-shrink:0;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PASSKEYS PANEL
+═══════════════════════════════════════════════════════ */
+.passkey-hero{
+  background:linear-gradient(135deg, rgba(91,106,245,.08) 0%, transparent 60%),
+             var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px;
+  margin-bottom:24px;
+  display:flex;align-items:center;gap:24px;
+}
+.passkey-hero-icon{font-size:48px;line-height:1}
+.passkey-hero-title{font-family:'Instrument Serif',serif;font-size:22px;color:var(--text);margin-bottom:6px;letter-spacing:-0.01em}
+.passkey-hero-sub{font-size:13px;color:var(--text-2);line-height:1.6;max-width:400px}
+
+/* ═══════════════════════════════════════════════════════
+   PAYMENTS PANEL
+═══════════════════════════════════════════════════════ */
+.card-visual{
+  background:linear-gradient(135deg, #1a1b3a 0%, #0e0f22 100%);
+  border:1px solid rgba(91,106,245,.25);
+  border-radius:16px;
+  padding:24px;
+  width:340px;
+  position:relative;
+  overflow:hidden;
+  cursor:pointer;
+  transition:transform .2s,box-shadow .2s;
+}
+.card-visual:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(91,106,245,.2)}
+.card-visual::before{
+  content:'';position:absolute;
+  top:-40px;right:-40px;
+  width:180px;height:180px;
+  background:radial-gradient(circle, rgba(91,106,245,.2), transparent 70%);
+  pointer-events:none;
+}
+.card-chip{
+  width:36px;height:28px;
+  background:linear-gradient(135deg,#fbbf24,#f59e0b);
+  border-radius:5px;margin-bottom:20px;
+  box-shadow:0 2px 8px rgba(251,191,36,.3);
+}
+.card-number{
+  font-family:'Geist',monospace;
+  font-size:18px;font-weight:500;
+  color:rgba(255,255,255,.85);
+  letter-spacing:.2em;
+  margin-bottom:16px;
+}
+.card-bottom{
+  display:flex;justify-content:space-between;align-items:flex-end;
+}
+.card-label{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px}
+.card-value{font-size:14px;font-weight:600;color:rgba(255,255,255,.8)}
+.card-brand{font-size:24px;font-weight:800;color:rgba(255,255,255,.6)}
+
+.cards-scroll{
+  display:flex;gap:16px;
+  overflow-x:auto;padding-bottom:8px;
+  margin-bottom:28px;
+}
+.cards-scroll::-webkit-scrollbar{height:3px}
+
+.add-card-btn{
+  width:340px;min-width:340px;height:180px;
+  border:2px dashed var(--border-2);
+  border-radius:16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  cursor:pointer;transition:all .2s;color:var(--text-3);
+  background:transparent;font-family:inherit;font-size:13px;
+  flex-shrink:0;
+}
+.add-card-btn:hover{border-color:var(--accent);color:var(--accent-2);background:var(--accent-light)}
+.add-card-icon{font-size:28px}
+
+/* ═══════════════════════════════════════════════════════
+   PERSONAL INFO PANEL
+═══════════════════════════════════════════════════════ */
+.identity-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:14px;
+  margin-top:16px;
+}
+.identity-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px;
+  cursor:pointer;transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.identity-card::before{
+  content:'';position:absolute;
+  top:0;left:0;width:3px;height:100%;
+  background:var(--accent);opacity:0;
+  transition:opacity .2s;
+}
+.identity-card:hover{background:var(--card-hover);border-color:var(--border-2)}
+.identity-card:hover::before{opacity:1}
+.identity-avatar{
+  width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:12px;
+  background:var(--accent-light);border:1px solid rgba(91,106,245,.2);
+}
+.identity-name{font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px}
+.identity-detail{font-size:12px;color:var(--text-2)}
+
+/* ═══════════════════════════════════════════════════════
+   PASSWORD HEALTH PANEL
+═══════════════════════════════════════════════════════ */
+.health-hero{
+  display:grid;grid-template-columns:auto 1fr;
+  gap:32px;align-items:center;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:28px;
+  margin-bottom:24px;
+}
+.health-score-ring{
+  position:relative;width:120px;height:120px;flex-shrink:0;
+}
+.health-score-ring svg{transform:rotate(-90deg)}
+.health-score-num{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Instrument Serif',serif;
+  font-size:32px;color:var(--text);
+  line-height:1;
+}
+.health-score-label{font-size:11px;color:var(--text-2);margin-top:3px;font-family:'Geist',sans-serif}
+
+.health-title{font-family:'Instrument Serif',serif;font-size:24px;color:var(--text);margin-bottom:8px;letter-spacing:-0.01em}
+.health-sub{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px}
+
+.health-issues{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.issue-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.issue-count{
+  font-family:'Instrument Serif',serif;
+  font-size:28px;color:var(--text);letter-spacing:-0.02em;
+}
+.issue-label{font-size:12px;color:var(--text-2)}
+
+.health-item{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+}
+.health-item:last-child{border-bottom:none}
+.strength-pill{
+  font-size:10px;font-weight:700;
+  padding:3px 10px;border-radius:20px;
+  flex-shrink:0;min-width:70px;text-align:center;
+}
+.pw-meter{
+  flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;
+}
+.pw-meter-fill{height:100%;border-radius:2px;transition:width .4s}
+
+/* ═══════════════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════════════ */
+.modal-bg{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.65);backdrop-filter:blur(6px);
+  z-index:400;display:none;
+  align-items:center;justify-content:center;
+}
+.modal-bg.show{display:flex;animation:fadeBg .2s ease}
+@keyframes fadeBg{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--surface);
+  border:1px solid var(--border-2);
+  border-radius:20px;
+  width:480px;
+  box-shadow:0 40px 100px rgba(0,0,0,.6);
+  animation:slideModal .25s cubic-bezier(.34,1.56,.64,1);
+  overflow:hidden;
+}
+@keyframes slideModal{from{opacity:0;transform:translateY(14px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.modal-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:20px 24px 0;
+}
+.modal-title{font-family:'Instrument Serif',serif;font-size:20px;color:var(--text);letter-spacing:-0.01em}
+.modal-close{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);
+  color:var(--text-2);cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;
+}
+.modal-close:hover{background:var(--card-hover);color:var(--text)}
+.modal-body{padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px}
+.modal-footer{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:0 24px 24px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DOWNLOAD EXTENSION SECTION
+═══════════════════════════════════════════════════════ */
+.download-hero{
+  background:linear-gradient(135deg, rgba(91,106,245,.06) 0%, transparent 60%),
+             var(--card);
+  border:1px solid rgba(91,106,245,.2);
+  border-radius:var(--radius);
+  padding:28px;
+  margin-bottom:24px;
+  position:relative;
+  overflow:hidden;
+}
+.download-hero::before{
+  content:'';position:absolute;
+  top:-40px;right:-40px;
+  width:200px;height:200px;
+  background:radial-gradient(circle, rgba(91,106,245,.1), transparent 70%);
+}
+
+.browser-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.browser-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 16px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  cursor:pointer;transition:all .2s;text-align:center;
+}
+.browser-card:hover{background:var(--card-hover);border-color:var(--accent);transform:translateY(-2px)}
+.browser-card:hover .browser-icon{filter:drop-shadow(0 0 10px rgba(91,106,245,.4))}
+.browser-icon{font-size:36px;line-height:1}
+.browser-name{font-size:13px;font-weight:600;color:var(--text)}
+.browser-sub{font-size:11px;color:var(--text-3)}
+.browser-badge{
+  font-size:10px;font-weight:700;padding:2px 7px;
+  border-radius:10px;background:var(--success-bg);color:var(--success);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════ */
+#toast-container{
+  position:fixed;bottom:24px;right:24px;
+  display:flex;flex-direction:column;gap:8px;
+  z-index:999;pointer-events:none;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border-2);
+  border-radius:var(--radius-sm);
+  padding:12px 16px;
+  font-size:13px;color:var(--text);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+  animation:toastIn .3s ease;
+  min-width:260px;
+}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.toast.success{border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.05)}
+.toast.error{border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.05)}
+
+/* ═══════════════════════════════════════════════════════
+   MISC
+═══════════════════════════════════════════════════════ */
+.empty-state{
+  text-align:center;padding:60px 20px;
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.empty-emoji{font-size:44px;opacity:.4;line-height:1}
+.empty-title{font-family:'Instrument Serif',serif;font-size:20px;color:var(--text-2);letter-spacing:-0.01em}
+.empty-sub{font-size:13px;color:var(--text-3);max-width:280px;line-height:1.6}
+
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+.tag{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:700;
+  padding:3px 8px;border-radius:20px;
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-bg-grid"></div>
+  <div class="auth-layout">
+
+    <!-- Hero -->
+    <div class="auth-hero">
+      <div class="auth-hero-logo">
+        <div class="hero-icon">🔐</div>
+        <span class="hero-name">KeyVault</span>
+      </div>
+      <div class="auth-hero-content">
+        <h1>Your passwords,<br><em>perfectly</em> secured.</h1>
+        <p>One master password protects everything. Zero-knowledge encryption means only you can read your vault.</p>
+        <div class="auth-features">
+          <div class="auth-feature"><div class="auth-feature-dot"></div>AES-256-GCM zero-knowledge encryption</div>
+          <div class="auth-feature"><div class="auth-feature-dot"></div>Cross-device sync via Firebase</div>
+          <div class="auth-feature"><div class="auth-feature-dot"></div>Browser extensions for all browsers</div>
+          <div class="auth-feature"><div class="auth-feature-dot"></div>Password health & breach detection</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3)">KeyVault v2.0 · Zero-knowledge</div>
+    </div>
+
+    <!-- Form -->
+    <div class="auth-form-panel">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign in</button>
+        <button class="auth-tab" onclick="switchAuthTab('signup',this)">Create account</button>
+      </div>
+
+      <!-- Login form -->
+      <div id="form-login">
+        <div class="auth-form-title">Welcome back</div>
+        <div class="auth-form-sub">Sign in to access your vault</div>
+        <div class="field-stack">
+          <div class="field">
+            <label>Username or Email</label>
+            <input type="text" id="l-user" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <div class="field-wrap">
+              <input type="password" id="l-pw" placeholder="Your account password" class="pr" onkeydown="if(event.key==='Enter')doLogin()">
+              <button class="eye-btn" onclick="toggleEye('l-pw',this)">👁</button>
+            </div>
+          </div>
+        </div>
+        <label class="check-row"><input type="checkbox" id="l-remember"><div class="cbox"></div>Remember me for 30 days</label>
+        <div class="err" id="l-err"></div>
+        <button class="btn btn-primary btn-full" onclick="doLogin()">Sign in</button>
+        <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text-3)">
+          Don't have an account? <a href="#" onclick="switchAuthTabDirect('signup')" style="color:var(--accent-2)">Create one</a>
+        </div>
+      </div>
+
+      <!-- Signup form -->
+      <div id="form-signup" style="display:none">
+        <div class="auth-form-title">Create account</div>
+        <div class="auth-form-sub">Start securing your passwords today</div>
+        <div class="field-stack">
+          <div class="grid-2">
+            <div class="field"><label>First Name</label><input type="text" id="s-fname" placeholder="Jane"></div>
+            <div class="field"><label>Last Name</label><input type="text" id="s-lname" placeholder="Doe"></div>
+          </div>
+          <div class="field"><label>Email</label><input type="email" id="s-email" placeholder="jane@example.com"></div>
+          <div class="field"><label>Username</label><input type="text" id="s-user" placeholder="janedoe"></div>
+          <div class="field">
+            <label>Account Password</label>
+            <div class="field-wrap">
+              <input type="password" id="s-pw" placeholder="Strong account password" class="pr" oninput="updatePwStrength(this.value,'s-str')">
+              <button class="eye-btn" onclick="toggleEye('s-pw',this)">👁</button>
+            </div>
+            <div class="pw-strength-bar"><div class="pw-strength-fill" id="s-str"></div></div>
+          </div>
+        </div>
+        <div class="err" id="s-err"></div>
+        <button class="btn btn-primary btn-full" onclick="doSignup()">Create account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MASTER PASSWORD SETUP OVERLAY
+════════════════════════════════════════════════ -->
+<div id="master-overlay" class="hidden">
+  <div class="master-card">
+    <div class="master-icon">🔐</div>
+    <div class="master-title" id="master-title">Set your master password</div>
+    <div class="master-sub" id="master-sub">Your master password encrypts your entire vault. It is never stored or sent anywhere. Choose something strong and memorable — you cannot recover it if lost.</div>
+    <div class="field-stack" id="master-fields">
+      <div class="field">
+        <label>Master Password</label>
+        <div class="field-wrap">
+          <input type="password" id="mp-pw" placeholder="Create a strong master password" class="pr" oninput="updatePwStrength(this.value,'mp-str')">
+          <button class="eye-btn" onclick="toggleEye('mp-pw',this)">👁</button>
+        </div>
+        <div class="pw-strength-bar"><div class="pw-strength-fill" id="mp-str"></div></div>
+      </div>
+      <div class="field">
+        <label>Confirm Master Password</label>
+        <div class="field-wrap">
+          <input type="password" id="mp-confirm" placeholder="Repeat master password" class="pr">
+          <button class="eye-btn" onclick="toggleEye('mp-confirm',this)">👁</button>
+        </div>
+      </div>
+    </div>
+    <div id="master-unlock-field" style="display:none">
+      <div class="field" style="margin-bottom:16px">
+        <label>Master Password</label>
+        <div class="field-wrap">
+          <input type="password" id="mp-unlock" placeholder="Enter your master password" class="pr" onkeydown="if(event.key==='Enter')submitMaster()">
+          <button class="eye-btn" onclick="toggleEye('mp-unlock',this)">👁</button>
+        </div>
+      </div>
+    </div>
+    <label class="check-row" id="master-remember-row"><input type="checkbox" id="mp-remember"><div class="cbox"></div>Don't ask for 30 days on this device</label>
+    <div class="err" id="mp-err"></div>
+    <button class="btn btn-primary btn-full" id="master-btn" onclick="submitMaster()">Create Vault</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-icon">🔐</div>
+      <span class="sidebar-logo-name">KeyVault</span>
+    </div>
+    <div class="sidebar-search">
+      <div class="sidebar-search-inner" onclick="focusGlobalSearch()">
+        <span class="search-icon">⌕</span>
+        <input type="text" id="global-search" placeholder="Search vault…" oninput="globalSearch(this.value)">
+        <span class="search-kbd">⌘K</span>
+      </div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Vault</div>
+      <div class="nav-item active" onclick="navigate('logins',this)">
+        <div class="nav-icon">🔑</div>
+        <span class="nav-label">Logins</span>
+        <span class="nav-badge" id="badge-logins">0</span>
+      </div>
+      <div class="nav-item" onclick="navigate('passkeys',this)">
+        <div class="nav-icon">🗝️</div>
+        <span class="nav-label">Passkeys</span>
+      </div>
+      <div class="nav-item" onclick="navigate('payments',this)">
+        <div class="nav-icon">💳</div>
+        <span class="nav-label">Payments</span>
+      </div>
+      <div class="nav-item" onclick="navigate('personal',this)">
+        <div class="nav-icon">👤</div>
+        <span class="nav-label">Personal Info</span>
+      </div>
+      <div class="nav-section-label">Security</div>
+      <div class="nav-item" onclick="navigate('health',this)">
+        <div class="nav-icon">🛡️</div>
+        <span class="nav-label">Password Health</span>
+        <span class="nav-badge warn" id="badge-health" style="display:none">!</span>
+      </div>
+      <div class="nav-section-label">Extension</div>
+      <div class="nav-item" onclick="navigate('download',this)">
+        <div class="nav-icon">🧩</div>
+        <span class="nav-label">Get Extension</span>
+        <span class="tag badge-accent" style="font-size:9px;padding:1px 6px">NEW</span>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="navigate('settings',this)">
+        <div class="user-avatar" id="user-avatar-sidebar">J</div>
+        <div class="user-info">
+          <div class="user-name" id="sidebar-username">Loading…</div>
+          <div class="user-plan">Free Plan</div>
+        </div>
+        <span class="user-caret">⚙</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main area -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title" id="topbar-title">Logins</div>
+      <div class="topbar-actions">
+        <div class="notif-btn" onclick="toggleNotifPanel()" id="notif-btn">
+          🔔
+          <div class="notif-dot" id="notif-dot"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="topbar-add-btn" onclick="openAddModal()">+ Add new</button>
+      </div>
+    </header>
+
+    <div class="page-content" id="page-content">
+
+      <!-- ── LOGINS ───────────────────────────────── -->
+      <div class="panel active" id="panel-logins">
+        <div class="login-toolbar">
+          <div class="search-field">
+            <span style="color:var(--text-3);font-size:14px">⌕</span>
+            <input type="text" id="logins-search" placeholder="Search logins…" oninput="filterLogins(this.value)">
+          </div>
+          <select id="logins-sort" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-family:inherit;font-size:13px;outline:none;cursor:pointer" onchange="filterLogins('')">
+            <option value="name">A–Z</option>
+            <option value="recent">Most recent</option>
+            <option value="strength">By strength</option>
+          </select>
+        </div>
+        <div id="logins-list"></div>
+      </div>
+
+      <!-- ── PASSKEYS ─────────────────────────────── -->
+      <div class="panel" id="panel-passkeys">
+        <div class="passkey-hero">
+          <div class="passkey-hero-icon">🗝️</div>
+          <div>
+            <div class="passkey-hero-title">Passkeys — the future of authentication</div>
+            <div class="passkey-hero-sub">Passkeys replace passwords with cryptographic keys. More secure, no phishing possible. Manage all your saved passkeys here.</div>
+            <div style="margin-top:14px;display:flex;gap:10px;">
+              <button class="btn btn-primary btn-sm" onclick="openAddPasskey()">+ Register passkey</button>
+              <button class="btn btn-ghost btn-sm">Learn more</button>
+            </div>
+          </div>
+        </div>
+        <div id="passkeys-list"><div class="card"><div class="empty-state"><div class="empty-emoji">🗝️</div><div class="empty-title">No passkeys yet</div><div class="empty-sub">Passkeys will appear here when you register them on supported websites</div></div></div></div>
+      </div>
+
+      <!-- ── PAYMENTS ─────────────────────────────── -->
+      <div class="panel" id="panel-payments">
+        <div class="page-header">
+          <div><div class="page-title">Payment Methods</div><div class="page-sub" id="cards-count">No saved cards</div></div>
+        </div>
+        <div class="cards-scroll" id="cards-scroll">
+          <button class="add-card-btn" onclick="openAddCard()">
+            <div class="add-card-icon">＋</div>
+            <span>Add payment card</span>
+          </button>
+        </div>
+        <div class="section-label">Saved Cards</div>
+        <div class="card" id="cards-list-view">
+          <div class="empty-state"><div class="empty-emoji">💳</div><div class="empty-title">No cards saved</div><div class="empty-sub">Add a card above to autofill payment forms</div></div>
+        </div>
+      </div>
+
+      <!-- ── PERSONAL INFO ────────────────────────── -->
+      <div class="panel" id="panel-personal">
+        <div class="page-header">
+          <div><div class="page-title">Personal Info</div><div class="page-sub">Autofill your details on any form</div></div>
+          <button class="btn btn-primary btn-sm" onclick="openAddIdentity()">+ Add new</button>
+        </div>
+        <div id="identity-grid" class="identity-grid"></div>
+        <div class="empty-state hidden" id="identity-empty">
+          <div class="empty-emoji">👤</div>
+          <div class="empty-title">No profiles yet</div>
+          <div class="empty-sub">Add a profile to autofill your name, address, phone and more on any website form</div>
+          <button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="openAddIdentity()">+ Add profile</button>
+        </div>
+      </div>
+
+      <!-- ── PASSWORD HEALTH ──────────────────────── -->
+      <div class="panel" id="panel-health">
+        <div class="health-hero">
+          <div class="health-score-ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="8"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--accent)" stroke-width="8"
+                stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"
+                id="health-ring" style="transition:stroke-dashoffset 1s ease,stroke 1s ease"/>
+            </svg>
+            <div class="health-score-num">
+              <span id="health-score-num">—</span>
+              <span class="health-score-label">/ 100</span>
+            </div>
+          </div>
+          <div>
+            <div class="health-title" id="health-grade">Analyzing…</div>
+            <div class="health-sub" id="health-sub">Add passwords to see your security score</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap" id="health-badges"></div>
+          </div>
+        </div>
+        <div class="health-issues" id="health-issues"></div>
+        <div class="section-label">All Passwords</div>
+        <div class="card" id="health-list"></div>
+      </div>
+
+      <!-- ── GET EXTENSION ────────────────────────── -->
+      <div class="panel" id="panel-download">
+        <div class="download-hero">
+          <div class="page-header" style="margin-bottom:12px">
+            <div>
+              <div class="page-title">Browser Extension</div>
+              <div class="page-sub">Install KeyVault on your browser — autofill passwords everywhere</div>
+            </div>
+          </div>
+          <p style="font-size:13px;color:var(--text-2);line-height:1.7;max-width:520px">
+            After installing, click the extension icon and sign in with your <strong style="color:var(--text)">KeyVault account credentials</strong> (same username + password used here). Your master password will be requested once to decrypt your vault — you can check <em>"Don't ask for 30 days"</em> to skip it on this device.
+          </p>
+        </div>
+        <div class="section-label">Choose your browser</div>
+        <div class="browser-grid">
+          <div class="browser-card" onclick="downloadExtension('chrome')">
+            <div class="browser-icon">🟡</div>
+            <div class="browser-name">Chrome</div>
+            <div class="browser-sub">v88+</div>
+            <div class="browser-badge">Supported</div>
+          </div>
+          <div class="browser-card" onclick="downloadExtension('firefox')">
+            <div class="browser-icon">🦊</div>
+            <div class="browser-name">Firefox</div>
+            <div class="browser-sub">v109+</div>
+            <div class="browser-badge">Supported</div>
+          </div>
+          <div class="browser-card" onclick="downloadExtension('edge')">
+            <div class="browser-icon">🔵</div>
+            <div class="browser-name">Edge</div>
+            <div class="browser-sub">v88+</div>
+            <div class="browser-badge">Supported</div>
+          </div>
+          <div class="browser-card" onclick="downloadExtension('brave')">
+            <div class="browser-icon">🦁</div>
+            <div class="browser-name">Brave</div>
+            <div class="browser-sub">v1.x+</div>
+            <div class="browser-badge">Supported</div>
+          </div>
+        </div>
+
+        <div class="section-label">How to install (all browsers)</div>
+        <div class="card" style="padding:0">
+          <div class="list-item" style="cursor:default">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+            <div class="item-info"><div class="item-name">Download the extension ZIP</div><div class="item-sub">Click your browser above to download the KeyVault extension package</div></div>
+          </div>
+          <div class="list-item" style="cursor:default">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:circle;font-size:12px;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center">2</div>
+            <div class="item-info"><div class="item-name">Enable Developer Mode</div><div class="item-sub">Chrome/Edge: chrome://extensions → Developer Mode ON · Firefox: about:debugging → Load Temporary Add-on</div></div>
+          </div>
+          <div class="list-item" style="cursor:default">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+            <div class="item-info"><div class="item-name">Load the extension folder</div><div class="item-sub">Click "Load unpacked" and select the extracted keyvault folder</div></div>
+          </div>
+          <div class="list-item" style="cursor:default">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
+            <div class="item-info"><div class="item-name">Sign in with your KeyVault account</div><div class="item-sub">Use the same username + password you created here. Master password is requested once per device.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SETTINGS ─────────────────────────────── -->
+      <div class="panel" id="panel-settings">
+        <div class="page-title" style="margin-bottom:20px">Account Settings</div>
+        <div class="grid-2" style="gap:20px">
+          <div>
+            <div class="section-label">Profile</div>
+            <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div class="field"><label>First Name</label><input type="text" id="set-fname"></div>
+              <div class="field"><label>Last Name</label><input type="text" id="set-lname"></div>
+              <div class="field"><label>Email</label><input type="email" id="set-email"></div>
+              <div class="field"><label>Username</label><input type="text" id="set-user" readonly style="opacity:.5"></div>
+              <button class="btn btn-primary btn-sm" style="align-self:flex-start" onclick="saveProfile()">Save changes</button>
+            </div>
+          </div>
+          <div>
+            <div class="section-label">Security</div>
+            <div class="card" style="padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div class="list-item" style="border-bottom:1px solid var(--border);padding:10px 0;cursor:pointer" onclick="openChangeMasterPw()">
+                <div>🔐</div>
+                <div class="item-info"><div class="item-name">Change Master Password</div><div class="item-sub">Re-encrypts your entire vault</div></div>
+                <span style="color:var(--text-3)">›</span>
+              </div>
+              <div class="list-item" style="border-bottom:1px solid var(--border);padding:10px 0;cursor:pointer" onclick="openFirebaseConfig()">
+                <div>☁️</div>
+                <div class="item-info"><div class="item-name">Firebase Sync Config</div><div class="item-sub" id="fb-status-label">Not configured</div></div>
+                <span style="color:var(--text-3)">›</span>
+              </div>
+              <div class="list-item" style="padding:10px 0;cursor:pointer" onclick="doLogout()">
+                <div>🚪</div>
+                <div class="item-info"><div class="item-name" style="color:var(--danger)">Sign out</div><div class="item-sub">Clears session and locks vault</div></div>
+                <span style="color:var(--text-3)">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page-content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ════════════════════════════════════════════════
+     NOTIFICATIONS PANEL
+════════════════════════════════════════════════ -->
+<div id="notif-panel">
+  <div class="notif-header">
+    <span class="notif-header-title">Notifications</span>
+    <button class="btn btn-xs btn-ghost" onclick="markAllRead()">Mark all read</button>
+  </div>
+  <div class="notif-list" id="notif-list"></div>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════ -->
+
+<!-- Add Login Modal -->
+<div class="modal-bg" id="modal-login">
+  <div class="modal" style="width:520px">
+    <div class="modal-header">
+      <span class="modal-title" id="login-modal-title">Add Login</span>
+      <button class="modal-close" onclick="closeModal('modal-login')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="field"><label>Website / Domain</label><input type="text" id="al-domain" placeholder="example.com"></div>
+        <div class="field"><label>Title (optional)</label><input type="text" id="al-title" placeholder="My Account"></div>
+      </div>
+      <div class="field"><label>Username / Email</label><input type="text" id="al-user" placeholder="you@example.com"></div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-wrap">
+          <input type="password" id="al-pw" placeholder="Password" class="pr">
+          <button class="eye-btn" onclick="toggleEye('al-pw',this)">👁</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-ghost btn-sm" onclick="generateAndFill()">⚡ Generate strong password</button>
+        <span id="al-gen-pw" style="font-size:11px;color:var(--text-3);font-family:monospace"></span>
+      </div>
+      <div class="field"><label>Website URL (optional)</label><input type="url" id="al-url" placeholder="https://example.com"></div>
+      <div class="field"><label>Notes</label><textarea id="al-notes" placeholder="Any notes…" style="background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:vertical;outline:none;min-height:70px;width:100%;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea></div>
+      <input type="hidden" id="al-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-login')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveLogin()">Save Login</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Card Modal -->
+<div class="modal-bg" id="modal-card">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Add Payment Card</span>
+      <button class="modal-close" onclick="closeModal('modal-card')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Cardholder Name</label><input type="text" id="c-name" placeholder="Jane Doe"></div>
+      <div class="field"><label>Card Number</label><input type="text" id="c-num" placeholder="•••• •••• •••• ••••" maxlength="19" oninput="formatCard(this)"></div>
+      <div class="grid-2">
+        <div class="field"><label>Expiry</label><input type="text" id="c-exp" placeholder="MM/YY" maxlength="5" oninput="formatExpiry(this)"></div>
+        <div class="field"><label>CVV</label><input type="password" id="c-cvv" placeholder="•••" maxlength="4"></div>
+      </div>
+      <div class="field"><label>Nickname (optional)</label><input type="text" id="c-nick" placeholder="Personal Visa"></div>
+      <input type="hidden" id="c-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-card')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCard()">Save Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Identity Modal -->
+<div class="modal-bg" id="modal-identity">
+  <div class="modal" style="width:560px">
+    <div class="modal-header">
+      <span class="modal-title" id="id-modal-title">Add Personal Info</span>
+      <button class="modal-close" onclick="closeModal('modal-identity')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="field"><label>First Name</label><input type="text" id="id-fname" placeholder="Jane"></div>
+        <div class="field"><label>Last Name</label><input type="text" id="id-lname" placeholder="Doe"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Email</label><input type="email" id="id-email" placeholder="jane@example.com"></div>
+        <div class="field"><label>Phone</label><input type="tel" id="id-phone" placeholder="+1 555 000 0000"></div>
+      </div>
+      <div class="field"><label>Address</label><input type="text" id="id-addr" placeholder="123 Main St"></div>
+      <div class="grid-2">
+        <div class="field"><label>City</label><input type="text" id="id-city" placeholder="Austin"></div>
+        <div class="field"><label>State / Province</label><input type="text" id="id-state" placeholder="TX"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>ZIP / Postal</label><input type="text" id="id-zip" placeholder="78701"></div>
+        <div class="field"><label>Country</label><input type="text" id="id-country" placeholder="USA"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Company (optional)</label><input type="text" id="id-company" placeholder="Acme Corp"></div>
+        <div class="field"><label>Website (optional)</label><input type="url" id="id-website" placeholder="https://jane.dev"></div>
+      </div>
+      <input type="hidden" id="id-eid">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-identity')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveIdentity()">Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase Config Modal -->
+<div class="modal-bg" id="modal-firebase">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Firebase Sync Config</span>
+      <button class="modal-close" onclick="closeModal('modal-firebase')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-2);line-height:1.6">Connect Firebase Realtime Database for cross-browser and cross-device sync. Your vault stays encrypted — Firebase never sees your actual passwords.</p>
+      <div class="field"><label>Firebase Database URL</label><input type="url" id="fb-url" placeholder="https://your-app.firebaseio.com"></div>
+      <div class="field"><label>Auth Token (optional, for test mode leave blank)</label><input type="text" id="fb-token" placeholder="Firebase auth token"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-firebase')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="saveFirebase()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Master PW Modal -->
+<div class="modal-bg" id="modal-chmaster">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Change Master Password</span>
+      <button class="modal-close" onclick="closeModal('modal-chmaster')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Current Master Password</label><div class="field-wrap"><input type="password" id="chm-old" placeholder="Current master password" class="pr"><button class="eye-btn" onclick="toggleEye('chm-old',this)">👁</button></div></div>
+      <div class="field"><label>New Master Password</label><div class="field-wrap"><input type="password" id="chm-new" placeholder="New master password" class="pr"><button class="eye-btn" onclick="toggleEye('chm-new',this)">👁</button></div></div>
+      <div class="field"><label>Confirm New</label><input type="password" id="chm-conf" placeholder="Confirm new password"></div>
+      <div class="err" id="chm-err"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-chmaster')">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="changeMasterPw()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════
+// CRYPTO ENGINE
+// ════════════════════════════════════════════════════
+const PBKDF2_ITER = 100000, SALT_LEN = 16, IV_LEN = 12;
+const te = s => new TextEncoder().encode(s);
+const td = b => new TextDecoder().decode(b);
+
+async function deriveKey(pw, salt) {
+  const mat = await crypto.subtle.importKey('raw', te(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:PBKDF2_ITER, hash:'SHA-256' },
+    mat, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+
+async function encrypt(data, pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+  const iv   = crypto.getRandomValues(new Uint8Array(IV_LEN));
+  const key  = await deriveKey(pw, salt);
+  const ct   = await crypto.subtle.encrypt({ name:'AES-GCM', iv }, key, te(JSON.stringify(data)));
+  const out  = new Uint8Array(SALT_LEN + IV_LEN + ct.byteLength);
+  out.set(salt); out.set(iv, SALT_LEN); out.set(new Uint8Array(ct), SALT_LEN + IV_LEN);
+  return btoa(String.fromCharCode(...out));
+}
+
+async function decrypt(b64, pw) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const salt  = bytes.slice(0, SALT_LEN);
+  const iv    = bytes.slice(SALT_LEN, SALT_LEN + IV_LEN);
+  const ct    = bytes.slice(SALT_LEN + IV_LEN);
+  const key   = await deriveKey(pw, salt);
+  return JSON.parse(td(await crypto.subtle.decrypt({ name:'AES-GCM', iv }, key, ct)));
+}
+
+async function hashPw(pw) {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_LEN));
+  const key  = await deriveKey(pw, salt);
+  const ct   = await crypto.subtle.encrypt({ name:'AES-GCM', iv:new Uint8Array(IV_LEN) }, key, te('KV_VERIFIED'));
+  const out  = new Uint8Array(SALT_LEN + ct.byteLength);
+  out.set(salt); out.set(new Uint8Array(ct), SALT_LEN);
+  return btoa(String.fromCharCode(...out));
+}
+
+async function verifyPw(pw, hash) {
+  try {
+    const b = Uint8Array.from(atob(hash), c => c.charCodeAt(0));
+    const key = await deriveKey(pw, b.slice(0, SALT_LEN));
+    return td(await crypto.subtle.decrypt({ name:'AES-GCM', iv:new Uint8Array(IV_LEN) }, key, b.slice(SALT_LEN))) === 'KV_VERIFIED';
+  } catch { return false; }
+}
+
+async function hashAccountPw(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', te(pw + 'KV_ACCOUNT_SALT'));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════
+let ST = {
+  user: null,         // { username, email, fname, lname, pwHash, masterHash }
+  masterPw: null,
+  vault: [],          // logins
+  cards: [],          // payments
+  identities: [],     // personal info
+  passkeys: [],
+  fbConfig: null,
+  notifs: [],
+  currentPanel: 'logins'
+};
+
+// ════════════════════════════════════════════════════
+// STORAGE HELPERS
+// ════════════════════════════════════════════════════
+const LS = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+  del: k => localStorage.removeItem(k),
+  raw: k => localStorage.getItem(k),
+  setRaw: (k, v) => localStorage.setItem(k, v)
+};
+
+const KEYS = {
+  USERS: 'kv_users',
+  CURRENT: 'kv_current_user',
+  VAULT_PFX: 'kv_vault_',
+  CARDS_PFX: 'kv_cards_',
+  IDS_PFX: 'kv_ids_',
+  PASSKEYS_PFX: 'kv_pk_',
+  MASTER_PFX: 'kv_master_',
+  SESSION: 'kv_session',
+  FB: 'kv_firebase'
+};
+
+function vaultKey(u) { return KEYS.VAULT_PFX + u; }
+function cardsKey(u) { return KEYS.CARDS_PFX + u; }
+function idsKey(u)   { return KEYS.IDS_PFX + u; }
+function pkKey(u)    { return KEYS.PASSKEYS_PFX + u; }
+function masterKey(u){ return KEYS.MASTER_PFX + u; }
+
+// ════════════════════════════════════════════════════
+// SESSION
+// ════════════════════════════════════════════════════
+function saveSession(username, masterPw, remember30) {
+  const exp = Date.now() + (remember30 ? 30*86400000 : 3600000);
+  const data = { username, exp };
+  sessionStorage.setItem(KEYS.SESSION, JSON.stringify(data));
+  if (masterPw) sessionStorage.setItem('kv_mk', btoa(masterPw));
+  if (remember30) {
+    localStorage.setItem(KEYS.SESSION, JSON.stringify(data));
+    if (masterPw) localStorage.setItem('kv_mk', btoa(masterPw));
+  }
+}
+
+function loadSession() {
+  for (const s of [sessionStorage, localStorage]) {
+    try {
+      const d = JSON.parse(s.getItem(KEYS.SESSION));
+      if (d && Date.now() < d.exp) {
+        const mk = s.getItem('kv_mk');
+        return { username: d.username, masterPw: mk ? atob(mk) : null };
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function clearSession() {
+  sessionStorage.clear();
+  localStorage.removeItem(KEYS.SESSION);
+  localStorage.removeItem('kv_mk');
+}
+
+// ════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════
+function switchAuthTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  g('form-login').style.display = tab === 'login' ? '' : 'none';
+  g('form-signup').style.display = tab === 'signup' ? '' : 'none';
+}
+function switchAuthTabDirect(tab) {
+  document.querySelectorAll('.auth-tab').forEach((b, i) => b.classList.toggle('active', (tab==='login'&&i===0)||(tab==='signup'&&i===1)));
+  g('form-login').style.display = tab === 'login' ? '' : 'none';
+  g('form-signup').style.display = tab === 'signup' ? '' : 'none';
+}
+
+async function doSignup() {
+  const fname = val('s-fname').trim();
+  const lname = val('s-lname').trim();
+  const email = val('s-email').trim();
+  const user  = val('s-user').trim();
+  const pw    = val('s-pw');
+  if (!fname||!email||!user||!pw) { showErr('s-err','All fields required'); return; }
+  if (pw.length < 8) { showErr('s-err','Password must be at least 8 characters'); return; }
+
+  const users = LS.get(KEYS.USERS) || {};
+  if (users[user]) { showErr('s-err','Username already taken'); return; }
+
+  const pwHash = await hashAccountPw(pw);
+  users[user] = { username:user, email, fname, lname, pwHash, masterHash: null, createdAt: Date.now() };
+  LS.set(KEYS.USERS, users);
+  LS.set(KEYS.CURRENT, user);
+  ST.user = users[user];
+
+  showMasterOverlay('setup');
+}
+
+async function doLogin() {
+  const user = val('l-user').trim();
+  const pw   = val('l-pw');
+  if (!user||!pw) { showErr('l-err','Enter username and password'); return; }
+
+  const users = LS.get(KEYS.USERS) || {};
+  const found = users[user] || Object.values(users).find(u => u.email === user);
+  if (!found) { showErr('l-err','Account not found'); return; }
+
+  const hash = await hashAccountPw(pw);
+  if (hash !== found.pwHash) { showErr('l-err','Incorrect password'); return; }
+
+  LS.set(KEYS.CURRENT, found.username);
+  ST.user = found;
+
+  // Check for existing master
+  const masterHash = LS.raw(masterKey(found.username));
+  if (!masterHash) {
+    showMasterOverlay('setup');
+  } else {
+    // Check session for master pw
+    const sess = loadSession();
+    if (sess?.masterPw) {
+      const ok = await verifyPw(sess.masterPw, masterHash);
+      if (ok) {
+        ST.masterPw = sess.masterPw;
+        await enterApp();
+        return;
+      }
+    }
+    showMasterOverlay('unlock');
+  }
+}
+
+// ════════════════════════════════════════════════════
+// MASTER PASSWORD OVERLAY
+// ════════════════════════════════════════════════════
+let _masterMode = 'setup';
+
+function showMasterOverlay(mode) {
+  _masterMode = mode;
+  g('master-overlay').classList.remove('hidden');
+  g('auth-screen').classList.add('hidden');
+
+  if (mode === 'setup') {
+    g('master-title').textContent = 'Create your master password';
+    g('master-sub').textContent = 'Your master password encrypts your entire vault. It never leaves your device. Choose something strong and memorable — there is no recovery if lost.';
+    g('master-fields').style.display = '';
+    g('master-unlock-field').style.display = 'none';
+    g('master-btn').textContent = 'Create Vault';
+    setTimeout(() => g('mp-pw').focus(), 200);
+  } else {
+    g('master-title').textContent = 'Enter your master password';
+    g('master-sub').textContent = `Welcome back, ${ST.user?.fname || ST.user?.username}. Enter your master password to unlock your vault.`;
+    g('master-fields').style.display = 'none';
+    g('master-unlock-field').style.display = '';
+    g('master-btn').textContent = 'Unlock Vault';
+    setTimeout(() => g('mp-unlock').focus(), 200);
+  }
+}
+
+async function submitMaster() {
+  clearErr('mp-err');
+  if (_masterMode === 'setup') {
+    const pw  = val('mp-pw');
+    const con = val('mp-confirm');
+    if (pw.length < 8) { showErr('mp-err','At least 8 characters required'); return; }
+    if (pw !== con) { showErr('mp-err','Passwords do not match'); return; }
+
+    const hash = await hashPw(pw);
+    LS.setRaw(masterKey(ST.user.username), hash);
+    ST.masterPw = pw;
+    saveSession(ST.user.username, pw, g('mp-remember').checked);
+    await enterApp();
+  } else {
+    const pw = val('mp-unlock');
+    if (!pw) { showErr('mp-err','Enter your master password'); return; }
+    const hash = LS.raw(masterKey(ST.user.username));
+    const ok = await verifyPw(pw, hash);
+    if (!ok) { showErr('mp-err','Incorrect master password'); return; }
+    ST.masterPw = pw;
+    saveSession(ST.user.username, pw, g('mp-remember').checked);
+    await enterApp();
+  }
+}
+
+// ════════════════════════════════════════════════════
+// ENTER APP
+// ════════════════════════════════════════════════════
+async function enterApp() {
+  g('master-overlay').classList.add('hidden');
+  g('auth-screen').classList.add('hidden');
+  g('app').classList.add('visible');
+
+  // Load data
+  ST.vault = await loadEncrypted(vaultKey(ST.user.username)) || [];
+  ST.cards = await loadEncrypted(cardsKey(ST.user.username)) || [];
+  ST.identities = await loadEncrypted(idsKey(ST.user.username)) || [];
+  ST.passkeys = await loadEncrypted(pkKey(ST.user.username)) || [];
+
+  const fb = LS.get(KEYS.FB);
+  if (fb) ST.fbConfig = fb;
+
+  // Init UI
+  updateSidebarUser();
+  buildNotifications();
+  renderLogins();
+  renderCards();
+  renderIdentities();
+  renderHealth();
+  updateBadges();
+  updateFirebaseStatus();
+  loadSettingsForm();
+}
+
+async function loadEncrypted(key) {
+  const raw = LS.raw(key);
+  if (!raw) return null;
+  try { return await decrypt(raw, ST.masterPw); }
+  catch { return null; }
+}
+
+async function saveEncrypted(key, data) {
+  const enc = await encrypt(data, ST.masterPw);
+  LS.setRaw(key, enc);
+  if (ST.fbConfig?.url) pushFirebase(key, enc);
+}
+
+// ════════════════════════════════════════════════════
+// SIDEBAR & NAVIGATION
+// ════════════════════════════════════════════════════
+function updateSidebarUser() {
+  const u = ST.user;
+  g('sidebar-username').textContent = u.fname ? `${u.fname} ${u.lname}` : u.username;
+  g('user-avatar-sidebar').textContent = (u.fname?.[0] || u.username[0]).toUpperCase();
+}
+
+function navigate(panel, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else {
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick')?.includes(`'${panel}'`)) n.classList.add('active');
+    });
+  }
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const pEl = g('panel-' + panel);
+  if (pEl) pEl.classList.add('active');
+  ST.currentPanel = panel;
+
+  const titles = { logins:'Logins', passkeys:'Passkeys', payments:'Payments', personal:'Personal Info', health:'Password Health', download:'Get Extension', settings:'Settings' };
+  g('topbar-title').textContent = titles[panel] || 'KeyVault';
+
+  const showAdd = ['logins','payments','personal'].includes(panel);
+  g('topbar-add-btn').style.display = showAdd ? '' : 'none';
+  g('topbar-add-btn').textContent = panel === 'payments' ? '+ Add Card' : panel === 'personal' ? '+ Add Profile' : '+ Add Login';
+
+  if (panel === 'health') renderHealth();
+  if (panel === 'passkeys') renderPasskeys();
+}
+
+function openAddModal() {
+  if (ST.currentPanel === 'payments') openAddCard();
+  else if (ST.currentPanel === 'personal') openAddIdentity();
+  else openAddLogin();
+}
+
+// ════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ════════════════════════════════════════════════════
+function buildNotifications() {
+  ST.notifs = [];
+  const weak = ST.vault.filter(v => pwScore(v.password) < 40);
+  const old  = ST.vault.filter(v => v.updatedAt && Date.now() - v.updatedAt > 90*86400000);
+  const dupes = findDuplicates();
+
+  if (weak.length)  ST.notifs.push({ id:'n1', icon:'⚠️', bg:'rgba(239,68,68,.1)', title:`${weak.length} weak password${weak.length>1?'s':''}`, body:'Your vault has passwords that are easy to crack. Update them now.', time:'Just now', read:false, type:'danger' });
+  if (dupes.length) ST.notifs.push({ id:'n2', icon:'🔄', bg:'rgba(245,158,11,.1)', title:`${dupes.length} reused password${dupes.length>1?'s':''}`, body:'You\'re using the same password on multiple sites. This is a security risk.', time:'Just now', read:false, type:'warning' });
+  if (old.length)   ST.notifs.push({ id:'n3', icon:'🕐', bg:'rgba(91,106,245,.1)', title:`${old.length} old password${old.length>1?'s':''}`, body:'Some passwords haven\'t been updated in 90+ days.', time:'Just now', read:false, type:'info' });
+  if (!ST.fbConfig) ST.notifs.push({ id:'n4', icon:'☁️', bg:'rgba(91,106,245,.1)', title:'Enable cloud sync', body:'Configure Firebase to sync across all devices and browsers.', time:'Now', read:true, type:'info' });
+
+  renderNotifications();
+  g('notif-dot').style.display = ST.notifs.some(n => !n.read) ? '' : 'none';
+}
+
+function renderNotifications() {
+  const list = g('notif-list');
+  if (!ST.notifs.length) {
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-3);font-size:13px">No notifications</div>';
+    return;
+  }
+  list.innerHTML = ST.notifs.map(n => `
+    <div class="notif-item ${n.read?'':'unread'}" onclick="markRead('${n.id}')">
+      <div class="notif-icon" style="background:${n.bg}">${n.icon}</div>
+      <div class="notif-text">
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+      ${!n.read ? '<div class="notif-dot-unread"></div>' : '<div class="notif-dot-read"></div>'}
+    </div>
+  `).join('');
+}
+
+function toggleNotifPanel() {
+  g('notif-panel').classList.toggle('show');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('#notif-panel') && !e.target.closest('#notif-btn')) {
+    g('notif-panel').classList.remove('show');
+  }
+});
+
+function markRead(id) { ST.notifs.find(n => n.id===id)&&(ST.notifs.find(n=>n.id===id).read=true); renderNotifications(); g('notif-dot').style.display=ST.notifs.some(n=>!n.read)?'':'none'; }
+function markAllRead() { ST.notifs.forEach(n=>n.read=true); renderNotifications(); g('notif-dot').style.display='none'; }
+
+// ════════════════════════════════════════════════════
+// LOGINS
+// ════════════════════════════════════════════════════
+function renderLogins(filter = '') {
+  const list = g('logins-list');
+  const sort = g('logins-sort')?.value || 'name';
+  let items = [...ST.vault];
+
+  if (filter) items = items.filter(v =>
+    v.domain.toLowerCase().includes(filter) ||
+    v.username.toLowerCase().includes(filter) ||
+    (v.title||'').toLowerCase().includes(filter)
+  );
+
+  if (sort === 'name') items.sort((a,b) => (a.title||a.domain).localeCompare(b.title||b.domain));
+  else if (sort === 'recent') items.sort((a,b) => (b.updatedAt||0) - (a.updatedAt||0));
+  else if (sort === 'strength') items.sort((a,b) => pwScore(a.password) - pwScore(b.password));
+
+  if (!items.length) {
+    list.innerHTML = `<div class="card"><div class="empty-state"><div class="empty-emoji">🔑</div><div class="empty-title">No logins yet</div><div class="empty-sub">Add your first login or install the browser extension to start saving passwords automatically</div></div></div>`;
+    return;
+  }
+
+  // Group by first letter
+  const groups = {};
+  items.forEach(v => {
+    const key = (v.title||v.domain)[0].toUpperCase();
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(v);
+  });
+
+  list.innerHTML = Object.keys(groups).sort().map(letter => `
+    <div class="login-groups">
+      <div class="group-label">${letter}</div>
+      <div class="card">
+        ${groups[letter].map(v => loginRow(v)).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-id]').forEach(el => {
+    el.addEventListener('click', () => openEditLogin(el.dataset.id));
+  });
+  list.querySelectorAll('[data-copy]').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); copyText(el.dataset.copy, el.dataset.label); });
+  });
+  list.querySelectorAll('[data-del]').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); deleteLogin(el.dataset.del); });
+  });
+}
+
+function loginRow(v) {
+  const score = pwScore(v.password);
+  const color = score >= 80 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)';
+  const label = score >= 80 ? 'Strong' : score >= 50 ? 'Fair' : 'Weak';
+  const fav = `https://www.google.com/s2/favicons?domain=${v.domain}&sz=32`;
+  const ago = timeAgo(v.updatedAt || v.createdAt);
+  return `
+    <div class="list-item" data-id="${v.id}">
+      <div class="item-favicon">
+        <img src="${fav}" onerror="this.style.opacity='0'" width="20" height="20">
+      </div>
+      <div class="item-info">
+        <div class="item-name">${escHtml(v.title||v.domain)}</div>
+        <div class="item-sub">${escHtml(v.username)} · ${ago}</div>
+      </div>
+      <span class="tag" style="background:${color}1a;color:${color};font-size:10px">${label}</span>
+      <div class="item-actions">
+        <button class="btn btn-icon btn-xs" data-copy="${escHtml(v.password)}" data-label="Password" title="Copy password">🔑</button>
+        <button class="btn btn-icon btn-xs" data-copy="${escHtml(v.username)}" data-label="Username" title="Copy username">👤</button>
+        <button class="btn btn-icon btn-xs" data-del="${v.id}" title="Delete" style="color:var(--danger)">🗑</button>
+      </div>
+    </div>
+  `;
+}
+
+function filterLogins(q) { renderLogins(q.toLowerCase()); }
+
+function openAddLogin() {
+  g('login-modal-title').textContent = 'Add Login';
+  g('al-id').value = '';
+  g('al-domain').value = '';
+  g('al-title').value = '';
+  g('al-user').value = '';
+  g('al-pw').value = '';
+  g('al-url').value = '';
+  g('al-notes').value = '';
+  g('al-gen-pw').textContent = '';
+  openModal('modal-login');
+  setTimeout(() => g('al-domain').focus(), 100);
+}
+
+function openEditLogin(id) {
+  const v = ST.vault.find(x => x.id === id);
+  if (!v) return;
+  g('login-modal-title').textContent = 'Edit Login';
+  g('al-id').value = id;
+  g('al-domain').value = v.domain;
+  g('al-title').value = v.title || '';
+  g('al-user').value = v.username;
+  g('al-pw').value = v.password;
+  g('al-url').value = v.url || '';
+  g('al-notes').value = v.notes || '';
+  openModal('modal-login');
+}
+
+async function saveLogin() {
+  const domain = val('al-domain').trim().replace(/^https?:\/\//, '').split('/')[0];
+  const user   = val('al-user').trim();
+  const pw     = val('al-pw');
+  const id     = val('al-id');
+  if (!domain || !user || !pw) { toast('All required fields missing', 'error'); return; }
+
+  const entry = {
+    id: id || crypto.randomUUID(),
+    domain, username:user, password:pw,
+    title: val('al-title') || domain,
+    url: val('al-url'),
+    notes: val('al-notes'),
+    favicon: `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+
+  if (id) {
+    const idx = ST.vault.findIndex(v => v.id === id);
+    if (idx >= 0) { entry.createdAt = ST.vault[idx].createdAt; ST.vault[idx] = entry; }
+  } else { ST.vault.push(entry); }
+
+  await saveEncrypted(vaultKey(ST.user.username), ST.vault);
+  closeModal('modal-login');
+  renderLogins();
+  updateBadges();
+  buildNotifications();
+  toast(`✓ ${id ? 'Updated' : 'Saved'} — ${domain}`, 'success');
+}
+
+async function deleteLogin(id) {
+  if (!confirm('Delete this login?')) return;
+  ST.vault = ST.vault.filter(v => v.id !== id);
+  await saveEncrypted(vaultKey(ST.user.username), ST.vault);
+  renderLogins();
+  updateBadges();
+  buildNotifications();
+  toast('Login deleted');
+}
+
+function generateAndFill() {
+  const pw = generatePw();
+  g('al-pw').value = pw;
+  g('al-gen-pw').textContent = pw;
+  toast('⚡ Strong password generated', 'success');
+}
+
+// ════════════════════════════════════════════════════
+// PASSKEYS
+// ════════════════════════════════════════════════════
+function renderPasskeys() {
+  const list = g('passkeys-list');
+  if (!ST.passkeys.length) {
+    list.innerHTML = `<div class="card"><div class="empty-state"><div class="empty-emoji">🗝️</div><div class="empty-title">No passkeys registered</div><div class="empty-sub">Passkeys will appear here when you register them on supported websites. They\'re more secure than passwords.</div></div></div>`;
+    return;
+  }
+  list.innerHTML = `<div class="card">${ST.passkeys.map(pk => `
+    <div class="list-item">
+      <div class="item-favicon"><span style="font-size:18px">🗝️</span></div>
+      <div class="item-info"><div class="item-name">${escHtml(pk.domain)}</div><div class="item-sub">${escHtml(pk.username)} · Created ${timeAgo(pk.createdAt)}</div></div>
+      <span class="tag badge-success">Active</span>
+      <div class="item-actions"><button class="btn btn-icon btn-xs" style="color:var(--danger)" onclick="deletePasskey('${pk.id}')">🗑</button></div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function openAddPasskey() {
+  const domain = prompt('Domain for passkey (e.g. github.com):');
+  if (!domain) return;
+  const username = prompt('Username:');
+  if (!username) return;
+  ST.passkeys.push({ id:crypto.randomUUID(), domain, username, createdAt:Date.now() });
+  saveEncrypted(pkKey(ST.user.username), ST.passkeys);
+  renderPasskeys();
+  toast('✓ Passkey registered', 'success');
+}
+
+async function deletePasskey(id) {
+  ST.passkeys = ST.passkeys.filter(p => p.id !== id);
+  await saveEncrypted(pkKey(ST.user.username), ST.passkeys);
+  renderPasskeys();
+}
+
+// ════════════════════════════════════════════════════
+// PAYMENTS
+// ════════════════════════════════════════════════════
+function renderCards() {
+  const scroll = g('cards-scroll');
+  const existing = scroll.querySelectorAll('.card-visual');
+  existing.forEach(c => c.remove());
+
+  const listView = g('cards-list-view');
+
+  if (!ST.cards.length) {
+    listView.innerHTML = `<div class="empty-state"><div class="empty-emoji">💳</div><div class="empty-title">No cards saved</div><div class="empty-sub">Add a card above to autofill payment forms</div></div>`;
+    g('cards-count').textContent = 'No saved cards';
+    return;
+  }
+
+  g('cards-count').textContent = `${ST.cards.length} saved card${ST.cards.length>1?'s':''}`;
+
+  const colors = [
+    ['#1a1b3a','#0e0f22'],
+    ['#1a2a1a','#0e1a0e'],
+    ['#2a1a1a','#1a0e0e'],
+    ['#1a1a2a','#0e0e1a']
+  ];
+
+  ST.cards.forEach((card, i) => {
+    const [c1,c2] = colors[i%colors.length];
+    const el = document.createElement('div');
+    el.className = 'card-visual';
+    el.style.cssText = `background:linear-gradient(135deg,${c1},${c2});min-width:340px`;
+    const masked = '•••• •••• •••• ' + card.number.slice(-4);
+    el.innerHTML = `
+      <div class="card-chip"></div>
+      <div class="card-number">${masked}</div>
+      <div class="card-bottom">
+        <div>
+          <div class="card-label">Card Holder</div>
+          <div class="card-value">${escHtml(card.name)}</div>
+        </div>
+        <div>
+          <div class="card-label">Expires</div>
+          <div class="card-value">${escHtml(card.expiry)}</div>
+        </div>
+        <div class="card-brand">${detectCardBrand(card.number)}</div>
+      </div>
+    `;
+    el.onclick = () => openEditCard(card.id);
+    scroll.insertBefore(el, scroll.querySelector('.add-card-btn'));
+  });
+
+  listView.innerHTML = `<div>${ST.cards.map(card => `
+    <div class="list-item" style="cursor:pointer" onclick="openEditCard('${card.id}')">
+      <div class="item-favicon"><span style="font-size:18px">${detectCardBrand(card.number)}</span></div>
+      <div class="item-info">
+        <div class="item-name">${escHtml(card.nick||'Card')}</div>
+        <div class="item-sub">•••• ${card.number.slice(-4)} · Expires ${card.expiry}</div>
+      </div>
+      <div class="item-actions">
+        <button class="btn btn-icon btn-xs" style="color:var(--danger)" onclick="event.stopPropagation();deleteCard('${card.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('')}</div>`;
+}
+
+function openAddCard() {
+  ['c-name','c-num','c-exp','c-cvv','c-nick'].forEach(id => g(id).value='');
+  g('c-id').value = '';
+  openModal('modal-card');
+}
+
+function openEditCard(id) {
+  const c = ST.cards.find(x => x.id===id);
+  if (!c) return;
+  g('c-id').value = id;
+  g('c-name').value = c.name;
+  g('c-num').value = c.number;
+  g('c-exp').value = c.expiry;
+  g('c-cvv').value = '';
+  g('c-nick').value = c.nick||'';
+  openModal('modal-card');
+}
+
+async function saveCard() {
+  const name = val('c-name').trim();
+  const num  = val('c-num').replace(/\s/g,'');
+  const exp  = val('c-exp').trim();
+  const cvv  = val('c-cvv');
+  const id   = val('c-id');
+  if (!name||num.length<13||!exp) { toast('Fill in required card details', 'error'); return; }
+
+  const entry = { id:id||crypto.randomUUID(), name, number:num, expiry:exp, cvv, nick:val('c-nick')||'Card', createdAt:Date.now() };
+  if (id) { const idx=ST.cards.findIndex(c=>c.id===id); if(idx>=0) ST.cards[idx]=entry; }
+  else ST.cards.push(entry);
+
+  await saveEncrypted(cardsKey(ST.user.username), ST.cards);
+  closeModal('modal-card');
+  renderCards();
+  toast('✓ Card saved', 'success');
+}
+
+async function deleteCard(id) {
+  if (!confirm('Delete this card?')) return;
+  ST.cards = ST.cards.filter(c => c.id !== id);
+  await saveEncrypted(cardsKey(ST.user.username), ST.cards);
+  renderCards();
+  toast('Card deleted');
+}
+
+function detectCardBrand(num) {
+  if (/^4/.test(num)) return 'VISA';
+  if (/^5[1-5]/.test(num)) return 'MC';
+  if (/^3[47]/.test(num)) return 'AMEX';
+  return '💳';
+}
+
+function formatCard(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,16);
+  el.value = v.match(/.{1,4}/g)?.join(' ') || v;
+}
+function formatExpiry(el) {
+  let v = el.value.replace(/\D/g,'').slice(0,4);
+  if (v.length>2) v = v.slice(0,2)+'/'+v.slice(2);
+  el.value = v;
+}
+
+// ════════════════════════════════════════════════════
+// PERSONAL INFO
+// ════════════════════════════════════════════════════
+function renderIdentities() {
+  const grid = g('identity-grid');
+  const empty = g('identity-empty');
+
+  if (!ST.identities.length) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  grid.innerHTML = ST.identities.map(id => `
+    <div class="identity-card" onclick="openEditIdentity('${id.id}')">
+      <div class="identity-avatar">👤</div>
+      <div class="identity-name">${escHtml(id.fname||'')} ${escHtml(id.lname||'')}</div>
+      <div class="identity-detail">${escHtml(id.email||id.phone||'')}</div>
+      ${id.company ? `<div class="identity-detail" style="margin-top:2px">🏢 ${escHtml(id.company)}</div>` : ''}
+      ${id.city ? `<div class="identity-detail">📍 ${escHtml(id.city)}${id.country?', '+id.country:''}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function openAddIdentity() {
+  ['id-fname','id-lname','id-email','id-phone','id-addr','id-city','id-state','id-zip','id-country','id-company','id-website'].forEach(i => g(i).value='');
+  g('id-eid').value='';
+  g('id-modal-title').textContent='Add Personal Info';
+  openModal('modal-identity');
+}
+
+function openEditIdentity(id) {
+  const p = ST.identities.find(x => x.id===id);
+  if (!p) return;
+  g('id-fname').value=p.fname||''; g('id-lname').value=p.lname||'';
+  g('id-email').value=p.email||''; g('id-phone').value=p.phone||'';
+  g('id-addr').value=p.address||''; g('id-city').value=p.city||'';
+  g('id-state').value=p.state||''; g('id-zip').value=p.zip||'';
+  g('id-country').value=p.country||''; g('id-company').value=p.company||'';
+  g('id-website').value=p.website||''; g('id-eid').value=id;
+  g('id-modal-title').textContent='Edit Profile';
+  openModal('modal-identity');
+}
+
+async function saveIdentity() {
+  const fname = val('id-fname').trim();
+  const lname = val('id-lname').trim();
+  const id = val('id-eid');
+  if (!fname) { toast('First name required', 'error'); return; }
+
+  const entry = { id:id||crypto.randomUUID(), fname, lname, email:val('id-email'), phone:val('id-phone'), address:val('id-addr'), city:val('id-city'), state:val('id-state'), zip:val('id-zip'), country:val('id-country'), company:val('id-company'), website:val('id-website') };
+  if (id) { const idx=ST.identities.findIndex(x=>x.id===id); if(idx>=0) ST.identities[idx]=entry; }
+  else ST.identities.push(entry);
+
+  await saveEncrypted(idsKey(ST.user.username), ST.identities);
+  closeModal('modal-identity');
+  renderIdentities();
+  toast('✓ Profile saved', 'success');
+}
+
+// ════════════════════════════════════════════════════
+// PASSWORD HEALTH
+// ════════════════════════════════════════════════════
+function pwScore(pw) {
+  if (!pw) return 0;
+  let s = 0;
+  if (pw.length >= 8)  s += 15;
+  if (pw.length >= 12) s += 15;
+  if (pw.length >= 16) s += 10;
+  if (/[a-z]/.test(pw)) s += 10;
+  if (/[A-Z]/.test(pw)) s += 15;
+  if (/[0-9]/.test(pw)) s += 15;
+  if (/[^A-Za-z0-9]/.test(pw)) s += 20;
+  return Math.min(100, s);
+}
+
+function findDuplicates() {
+  const seen = {}, dups = [];
+  ST.vault.forEach(v => {
+    if (seen[v.password]) dups.push(v.id);
+    else seen[v.password] = true;
+  });
+  return dups;
+}
+
+function renderHealth() {
+  if (!ST.vault.length) {
+    updateHealthScore(0);
+    g('health-issues').innerHTML = '';
+    g('health-list').innerHTML = '<div class="empty-state"><div class="empty-emoji">🛡️</div><div class="empty-title">Add passwords to see health</div></div>';
+    return;
+  }
+
+  const weak   = ST.vault.filter(v => pwScore(v.password) < 40);
+  const fair   = ST.vault.filter(v => { const s=pwScore(v.password); return s>=40&&s<70; });
+  const strong = ST.vault.filter(v => pwScore(v.password) >= 70);
+  const reused = findDuplicates();
+  const old    = ST.vault.filter(v => v.updatedAt && Date.now()-v.updatedAt > 90*86400000);
+
+  const totalScore = ST.vault.length ? Math.round(ST.vault.reduce((acc,v) => acc+pwScore(v.password),0)/ST.vault.length) : 0;
+  updateHealthScore(totalScore);
+
+  // Issues grid
+  g('health-issues').innerHTML = `
+    <div class="issue-card">
+      <div class="issue-count" style="color:var(--danger)">${weak.length}</div>
+      <div class="issue-label">Weak passwords</div>
+      <span class="tag ${weak.length?'badge-danger':'badge-success'}">${weak.length?'Needs attention':'All good'}</span>
+    </div>
+    <div class="issue-card">
+      <div class="issue-count" style="color:var(--warning)">${reused.length}</div>
+      <div class="issue-label">Reused passwords</div>
+      <span class="tag ${reused.length?'badge-warning':'badge-success'}">${reused.length?'Risk':'All unique'}</span>
+    </div>
+    <div class="issue-card">
+      <div class="issue-count" style="color:var(--text-2)">${old.length}</div>
+      <div class="issue-label">Old passwords (90d+)</div>
+      <span class="tag ${old.length?'badge-warning':'badge-success'}">${old.length?'Update soon':'Up to date'}</span>
+    </div>
+  `;
+
+  // Health list
+  const sorted = [...ST.vault].sort((a,b) => pwScore(a.password)-pwScore(b.password));
+  g('health-list').innerHTML = sorted.map(v => {
+    const score = pwScore(v.password);
+    const color = score>=70?'var(--success)':score>=40?'var(--warning)':'var(--danger)';
+    const label = score>=70?'Strong':score>=40?'Fair':'Weak';
+    return `
+      <div class="health-item">
+        <div class="item-favicon"><img src="https://www.google.com/s2/favicons?domain=${v.domain}&sz=32" width="20" onerror="this.style.opacity='0'"></div>
+        <div class="item-info"><div class="item-name">${escHtml(v.title||v.domain)}</div><div class="item-sub">${escHtml(v.username)}</div></div>
+        <div class="pw-meter"><div class="pw-meter-fill" style="width:${score}%;background:${color}"></div></div>
+        <span class="strength-pill" style="background:${color}1a;color:${color}">${label} · ${score}</span>
+        <button class="btn btn-ghost btn-xs" onclick="openEditLogin('${v.id}')">Update</button>
+      </div>
+    `;
+  }).join('');
+
+  // Badges
+  g('health-badges').innerHTML = `
+    <span class="tag badge-success">✓ ${strong.length} strong</span>
+    ${fair.length ? `<span class="tag badge-warning">⚡ ${fair.length} fair</span>` : ''}
+    ${weak.length ? `<span class="tag badge-danger">⚠ ${weak.length} weak</span>` : ''}
+    ${reused.length ? `<span class="tag badge-warning">🔄 ${reused.length} reused</span>` : ''}
+  `;
+
+  // Health badge in nav
+  const healthBadge = g('badge-health');
+  if (weak.length || reused.length) { healthBadge.style.display=''; healthBadge.textContent='!'; }
+  else healthBadge.style.display='none';
+}
+
+function updateHealthScore(score) {
+  g('health-score-num').textContent = score;
+  const circumference = 2 * Math.PI * 52;
+  const offset = circumference - (score/100)*circumference;
+  g('health-ring').style.strokeDashoffset = offset;
+  const color = score>=80?'var(--success)':score>=50?'var(--warning)':'var(--danger)';
+  g('health-ring').style.stroke = color;
+
+  const grades = [[80,'Excellent','Your passwords are in great shape!'],[50,'Good','Some passwords could be stronger.'],[0,'Needs Work','Several passwords need attention.']];
+  const [,grade,sub] = grades.find(([min]) => score>=min);
+  g('health-grade').textContent = `${grade} Security`;
+  g('health-sub').textContent = sub;
+}
+
+// ════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════
+function loadSettingsForm() {
+  const u = ST.user;
+  g('set-fname').value = u.fname||'';
+  g('set-lname').value = u.lname||'';
+  g('set-email').value = u.email||'';
+  g('set-user').value  = u.username;
+  updateFirebaseStatus();
+}
+
+async function saveProfile() {
+  const users = LS.get(KEYS.USERS)||{};
+  ST.user.fname = val('set-fname');
+  ST.user.lname = val('set-lname');
+  ST.user.email = val('set-email');
+  users[ST.user.username] = ST.user;
+  LS.set(KEYS.USERS, users);
+  updateSidebarUser();
+  toast('✓ Profile saved', 'success');
+}
+
+function openFirebaseConfig() {
+  if (ST.fbConfig) { g('fb-url').value=ST.fbConfig.url||''; g('fb-token').value=ST.fbConfig.token||''; }
+  else { g('fb-url').value=''; g('fb-token').value=''; }
+  openModal('modal-firebase');
+}
+
+async function saveFirebase() {
+  const url = val('fb-url').trim();
+  const token = val('fb-token').trim();
+  if (!url) { toast('Enter Firebase URL', 'error'); return; }
+  ST.fbConfig = { url, token };
+  LS.set(KEYS.FB, ST.fbConfig);
+  closeModal('modal-firebase');
+  updateFirebaseStatus();
+  toast('✓ Firebase connected', 'success');
+}
+
+function updateFirebaseStatus() {
+  const el = g('fb-status-label');
+  if (el) el.textContent = ST.fbConfig?.url ? `Connected: ${ST.fbConfig.url.replace('https://','').split('.')[0]}` : 'Not configured';
+}
+
+async function pushFirebase(key, encData) {
+  if (!ST.fbConfig?.url) return;
+  try {
+    await fetch(`${ST.fbConfig.url}/keyvault/${ST.user.username}/${key.replace(/\W/g,'_')}.json${ST.fbConfig.token?'?auth='+ST.fbConfig.token:''}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ data:encData, ts:Date.now() })
+    });
+  } catch {}
+}
+
+function openChangeMasterPw() { openModal('modal-chmaster'); g('chm-old').focus(); }
+
+async function changeMasterPw() {
+  const old  = val('chm-old');
+  const nw   = val('chm-new');
+  const conf = val('chm-conf');
+  if (nw!==conf) { showErr('chm-err','New passwords do not match'); return; }
+  if (nw.length<8) { showErr('chm-err','At least 8 characters required'); return; }
+  const hash = LS.raw(masterKey(ST.user.username));
+  if (!await verifyPw(old,hash)) { showErr('chm-err','Current master password is wrong'); return; }
+  const newHash = await hashPw(nw);
+  LS.setRaw(masterKey(ST.user.username), newHash);
+  // Re-encrypt all data
+  const [vault,cards,ids,pks] = await Promise.all([
+    loadEncrypted(vaultKey(ST.user.username)),
+    loadEncrypted(cardsKey(ST.user.username)),
+    loadEncrypted(idsKey(ST.user.username)),
+    loadEncrypted(pkKey(ST.user.username))
+  ]);
+  ST.masterPw = nw;
+  await Promise.all([
+    saveEncrypted(vaultKey(ST.user.username), vault||[]),
+    saveEncrypted(cardsKey(ST.user.username), cards||[]),
+    saveEncrypted(idsKey(ST.user.username), ids||[]),
+    saveEncrypted(pkKey(ST.user.username), pks||[])
+  ]);
+  saveSession(ST.user.username, nw, false);
+  closeModal('modal-chmaster');
+  toast('✓ Master password updated', 'success');
+}
+
+function doLogout() {
+  if (!confirm('Sign out of KeyVault?')) return;
+  clearSession();
+  ST = { user:null,masterPw:null,vault:[],cards:[],identities:[],passkeys:[],fbConfig:null,notifs:[],currentPanel:'logins' };
+  g('app').classList.remove('visible');
+  g('auth-screen').classList.remove('hidden');
+  g('form-login').style.display='';
+  g('form-signup').style.display='none';
+  g('l-pw').value='';
+  document.querySelectorAll('.auth-tab').forEach((b,i)=>b.classList.toggle('active',i===0));
+}
+
+// ════════════════════════════════════════════════════
+// DOWNLOAD EXTENSION
+// ════════════════════════════════════════════════════
+function downloadExtension(browser) {
+  toast(`📦 Preparing extension for ${browser}… (deploy to GitHub Pages first)`, '');
+}
+
+// ════════════════════════════════════════════════════
+// GLOBAL SEARCH
+// ════════════════════════════════════════════════════
+function globalSearch(q) {
+  if (!q) return;
+  navigate('logins', null);
+  g('logins-search').value = q;
+  filterLogins(q);
+}
+function focusGlobalSearch() { g('global-search').focus(); }
+document.addEventListener('keydown', e => {
+  if ((e.metaKey||e.ctrlKey) && e.key==='k') { e.preventDefault(); focusGlobalSearch(); }
+});
+
+// ════════════════════════════════════════════════════
+// BADGES
+// ════════════════════════════════════════════════════
+function updateBadges() {
+  g('badge-logins').textContent = ST.vault.length;
+}
+
+// ════════════════════════════════════════════════════
+// UTILITIES
+// ════════════════════════════════════════════════════
+const g = id => document.getElementById(id);
+const val = id => (g(id)||{}).value || '';
+
+function openModal(id) { g(id).classList.add('show'); }
+function closeModal(id) { g(id).classList.remove('show'); }
+document.querySelectorAll('.modal-bg').forEach(m => {
+  m.addEventListener('click', e => { if (e.target===m) m.classList.remove('show'); });
+});
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') document.querySelectorAll('.modal-bg.show').forEach(m=>m.classList.remove('show'));
+});
+
+function showErr(id, msg) {
+  const el = g(id);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 4000);
+}
+function clearErr(id) { const el=g(id); if(el){el.classList.remove('show');el.textContent='';} }
+
+function toggleEye(inputId, btn) {
+  const el = g(inputId);
+  if (!el) return;
+  el.type = el.type==='password' ? 'text' : 'password';
+  btn.textContent = el.type==='password' ? '👁' : '🙈';
+}
+
+function updatePwStrength(pw, fillId) {
+  const el = g(fillId);
+  if (!el) return;
+  let s = 0;
+  if (pw.length>=8) s++;
+  if (pw.length>=12) s++;
+  if (/[A-Z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  const pct = (s/5)*100;
+  const colors = ['#ef4444','#f59e0b','#f59e0b','#22c55e','#22c55e','#22c55e'];
+  el.style.width = pct+'%';
+  el.style.background = colors[s]||'#ef4444';
+}
+
+function generatePw(opts={}) {
+  const { length=16, letters=true, digits=true, symbols=true, similar=false } = opts;
+  let lower = similar?'abcdefghijklmnopqrstuvwxyz':'abcdefghjkmnpqrstuvwxyz';
+  let upper = similar?'ABCDEFGHIJKLMNOPQRSTUVWXYZ':'ABCDEFGHJKMNPQRSTUVWXYZ';
+  let nums  = similar?'0123456789':'23456789';
+  let syms  = '!@#$%^&*_+-=?';
+  let chars = '';
+  if (letters) chars+=lower+upper;
+  if (digits)  chars+=nums;
+  if (symbols) chars+=syms;
+  if (!chars)  chars=lower;
+  const arr = crypto.getRandomValues(new Uint32Array(length));
+  return Array.from(arr, x=>chars[x%chars.length]).join('');
+}
+
+function copyText(text, label='') {
+  navigator.clipboard.writeText(text).then(()=>toast(`✓ ${label||'Copied'}`, 'success'));
+}
+
+function toast(msg, type='') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = msg;
+  g('toast-container').appendChild(t);
+  setTimeout(()=>t.remove(), 2800);
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function timeAgo(ts) {
+  if (!ts) return '';
+  const d = Date.now()-ts;
+  if (d<60000) return 'just now';
+  if (d<3600000) return Math.floor(d/60000)+'m ago';
+  if (d<86400000) return Math.floor(d/3600000)+'h ago';
+  if (d<2592000000) return Math.floor(d/86400000)+'d ago';
+  return new Date(ts).toLocaleDateString();
+}
+
+// ════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════
+async function boot() {
+  const sess = loadSession();
+  if (sess?.username) {
+    const users = LS.get(KEYS.USERS)||{};
+    const user = users[sess.username];
+    if (user) {
+      ST.user = user;
+      if (sess.masterPw) {
+        const hash = LS.raw(masterKey(user.username));
+        if (hash && await verifyPw(sess.masterPw, hash)) {
+          ST.masterPw = sess.masterPw;
+          await enterApp();
+          return;
+        }
+      }
+      showMasterOverlay('unlock');
+      g('auth-screen').classList.add('hidden');
+      return;
+    }
+  }
+  g('auth-screen').classList.remove('hidden');
+}
+
+boot();
+</script>
+</body>
+</html>
